@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { drive_v3 } from 'googleapis';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaExpand, FaCompress } from 'react-icons/fa';
 
 // Extended file interface to include the URLs added in the API
 interface ExtendedFile extends drive_v3.Schema$File {
@@ -36,9 +36,17 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
   const [fallbackAttempts, setFallbackAttempts] = useState(0);
   const [allComicPages, setAllComicPages] = useState<ExtendedFile[]>(files);
   const [loadingMorePages, setLoadingMorePages] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  
+  // Référence au conteneur d'image pour le mode plein écran
+  const imageContainerRef = useRef<HTMLDivElement>(null);
   
   // Référence persistante au cache d'images
   const imageCacheRef = useRef<ImageCache>(new Map());
+  
+  // Référence pour le timer d'inactivité
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Nombre de pages à précharger dans chaque direction
   const preloadAmount = 2;
@@ -451,6 +459,108 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
     }
   }, [currentPage, totalPages]);
 
+  // Gérer le basculement du mode plein écran
+  const toggleFullscreen = useCallback(async () => {
+    if (!imageContainerRef.current) return;
+    
+    try {
+      if (!isFullscreen) {
+        // Entrer en mode plein écran
+        if (imageContainerRef.current.requestFullscreen) {
+          await imageContainerRef.current.requestFullscreen();
+        } else if ((imageContainerRef.current as HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> }).webkitRequestFullscreen) {
+          await (imageContainerRef.current as HTMLDivElement & { webkitRequestFullscreen: () => Promise<void> }).webkitRequestFullscreen();
+        } else if ((imageContainerRef.current as HTMLDivElement & { msRequestFullscreen?: () => Promise<void> }).msRequestFullscreen) {
+          await (imageContainerRef.current as HTMLDivElement & { msRequestFullscreen: () => Promise<void> }).msRequestFullscreen();
+        }
+        setIsFullscreen(true);
+      } else {
+        // Sortir du mode plein écran
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as Document & { webkitExitFullscreen?: () => Promise<void> }).webkitExitFullscreen) {
+          await (document as Document & { webkitExitFullscreen: () => Promise<void> }).webkitExitFullscreen();
+        } else if ((document as Document & { msExitFullscreen?: () => Promise<void> }).msExitFullscreen) {
+          await (document as Document & { msExitFullscreen: () => Promise<void> }).msExitFullscreen();
+        }
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error("Erreur lors du basculement du mode plein écran:", error);
+    }
+  }, [isFullscreen]);
+
+  // Écouteur pour les changements d'état de plein écran
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(
+        !!document.fullscreenElement || 
+        !!(document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement || 
+        !!(document as Document & { msFullscreenElement?: Element }).msFullscreenElement
+      );
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Fonction pour gérer l'inactivité de l'utilisateur
+  const resetInactivityTimer = useCallback(() => {
+    // Annuler le timer précédent si existant
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    
+    // Afficher les contrôles
+    setControlsVisible(true);
+    
+    // Définir un nouveau timer pour masquer les contrôles après 3 secondes
+    inactivityTimerRef.current = setTimeout(() => {
+      // Ne pas masquer les contrôles si on est en train de survoler le bouton
+      const controlsElement = document.querySelector('.controls-hover-area');
+      if (controlsElement && (controlsElement as HTMLElement).matches(':hover')) {
+        // Si on est en train de survoler, réinitialiser le timer
+        resetInactivityTimer();
+        return;
+      }
+      setControlsVisible(false);
+    }, 3000);
+  }, []);
+
+  // Démarrer le timer d'inactivité au montage et nettoyer au démontage
+  useEffect(() => {
+    // Attacher des écouteurs d'événements pour détecter l'activité de l'utilisateur
+    const handleActivity = () => resetInactivityTimer();
+    
+    // Configurer les écouteurs d'événements
+    document.addEventListener('mousemove', handleActivity);
+    document.addEventListener('mousedown', handleActivity);
+    document.addEventListener('keydown', handleActivity);
+    document.addEventListener('touchstart', handleActivity);
+    
+    // Démarrer le timer initial
+    resetInactivityTimer();
+    
+    // Nettoyer les écouteurs et le timer au démontage
+    return () => {
+      document.removeEventListener('mousemove', handleActivity);
+      document.removeEventListener('mousedown', handleActivity);
+      document.removeEventListener('keydown', handleActivity);
+      document.removeEventListener('touchstart', handleActivity);
+      
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [resetInactivityTimer]);
+
   if (!allComicPages.length) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
@@ -463,11 +573,14 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
     <div className="relative w-full max-w-6xl mx-auto">
       <div className="flex items-center justify-center min-h-[60vh] relative">
         {imageUrl && (
-          <div className="relative group">
+          <div 
+            ref={imageContainerRef}
+            className={`relative group p-2 bg-white dark:bg-gray-800 rounded-lg shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 ${isFullscreen ? 'fullscreen-container' : ''}`}
+          >
             <img
               src={imageUrl}
               alt={`Page ${currentPage + 1}`}
-              className="object-contain max-h-[70vh] max-w-full transition-opacity duration-300 cursor-pointer" 
+              className={`object-contain transition-opacity duration-300 cursor-pointer ${isFullscreen ? 'max-h-screen max-w-screen' : 'max-h-[70vh] max-w-full'}`}
               style={{ opacity: loading ? 0.3 : 1 }}
               onLoad={() => {
                 console.log("Image loaded successfully");
@@ -479,40 +592,28 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
               fetchPriority="high"
             />
             
-            {/* Navigation indicators - only visible on hover on desktop */}
-            <div className="absolute inset-0 hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-              {/* Previous page indicator - left side */}
-              <div className="flex-1 flex items-center justify-start p-4 opacity-0">
-                <div className="bg-white bg-opacity-50 rounded-full p-2 shadow-lg">
-                  <FaChevronLeft className="w-6 h-6 text-black" />
-                </div>
-              </div>
-              
-              {/* Next page indicator - right side */}
-              <div className="flex-1 flex items-center justify-end p-4 opacity-0">
-                <div className="bg-white bg-opacity-50 rounded-full p-2 shadow-lg">
-                  <FaChevronRight className="w-6 h-6 text-black" />
-                </div>
-              </div>
+            {/* Zone sensible pour le bouton plein écran - toujours présente même quand le bouton est invisible */}
+            <div 
+              className="absolute top-0 right-0 w-16 h-16 z-10 cursor-pointer controls-hover-area"
+              onMouseEnter={() => resetInactivityTimer()}
+            >
+              <button 
+                onClick={toggleFullscreen}
+                className={`absolute top-2 right-2 z-10 bg-white dark:bg-gray-700 bg-opacity-70 dark:bg-opacity-70 p-2 rounded-full shadow-lg hover:bg-opacity-100 dark:hover:bg-opacity-100 transition-all duration-300 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                aria-label={isFullscreen ? "Sortir du plein écran" : "Plein écran"}
+              >
+                {isFullscreen ? <FaCompress className="w-5 h-5" /> : <FaExpand className="w-5 h-5" />}
+              </button>
             </div>
             
-            {/* Mobile navigation zones - invisible touch targets */}
-            <div className="absolute inset-0 flex md:hidden pointer-events-none">
-              {/* Previous page zone - left side */}
-              <div className="flex-[0.4]"></div>
-              
-              {/* Next page zone - right side */}
-              <div className="flex-[0.6]"></div>
-            </div>
-            
-            {/* Mobile indicators - briefly appear on tap before navigation */}
-            <div className="absolute top-1/2 left-4 transform -translate-y-1/2 md:hidden opacity-0 tap-indicator-prev pointer-events-none transition-opacity duration-300">
+            {/* Indicateurs qui apparaissent brièvement au clic sur toutes les plateformes */}
+            <div className="absolute top-1/2 left-4 transform -translate-y-1/2 opacity-0 tap-indicator-prev pointer-events-none transition-opacity duration-300">
               <div className="bg-white bg-opacity-70 rounded-full p-2 shadow-lg">
                 <FaChevronLeft className="w-5 h-5 text-black" />
               </div>
             </div>
             
-            <div className="absolute top-1/2 right-4 transform -translate-y-1/2 md:hidden opacity-0 tap-indicator-next pointer-events-none transition-opacity duration-300">
+            <div className="absolute top-1/2 right-4 transform -translate-y-1/2 opacity-0 tap-indicator-next pointer-events-none transition-opacity duration-300">
               <div className="bg-white bg-opacity-70 rounded-full p-2 shadow-lg">
                 <FaChevronRight className="w-5 h-5 text-black" />
               </div>
@@ -526,31 +627,64 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
         )}
       </div>
 
-      <div className="flex justify-between items-center mt-4">
-        <button
-          onClick={handlePrevPage}
-          disabled={currentPage === 0}
-          className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 disabled:opacity-30"        
-          aria-label="Page précédente"
-        >
-          <FaChevronLeft className="w-6 h-6" />
-        </button>
-
-        <div className="text-center">
-          <p>
-            Page {currentPage + 1} sur {totalPages}
-          </p>
-        </div>
-
-        <button
-          onClick={handleNextPage}
-          disabled={currentPage >= totalPages - 1}
-          className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 disabled:opacity-30"        
-          aria-label="Page suivante"
-        >
-          <FaChevronRight className="w-6 h-6" />
-        </button>
-      </div>
+      {/* Ajouter des styles CSS pour le mode plein écran */}
+      <style jsx global>{`
+        .fullscreen-container {
+          position: fixed !important;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100vw;
+          height: 100vh;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0;
+          padding: 0;
+          border-radius: 0 !important;
+        }
+        
+        .fullscreen-container img {
+          max-height: 100vh !important;
+          max-width: 100vw !important;
+          height: auto;
+          object-fit: contain;
+        }
+        
+        /* Positionnement relatif des indicateurs en plein écran */
+        .fullscreen-container .tap-indicator-prev,
+        .fullscreen-container .tap-indicator-next {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+        
+        .fullscreen-container .tap-indicator-prev {
+          left: 4%;
+        }
+        
+        .fullscreen-container .tap-indicator-next {
+          right: 4%;
+        }
+        
+        /* Masquer certains éléments lorsqu'on est en plein écran natif */
+        :fullscreen .fullscreen-container {
+          background-color: black;
+          padding: 0;
+        }
+        
+        :-webkit-full-screen .fullscreen-container {
+          background-color: black;
+          padding: 0;
+        }
+        
+        :-ms-fullscreen .fullscreen-container {
+          background-color: black;
+          padding: 0;
+        }
+      `}</style>
     </div>
   );
 } 

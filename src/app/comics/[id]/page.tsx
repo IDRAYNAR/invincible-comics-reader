@@ -176,7 +176,7 @@ export default function ComicPage({ params }: { params: Promise<PageParams> }) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] text-center px-4 pt-2">
-      <div className="mb-3 w-full flex flex-wrap justify-between items-center">
+      <div className="mb-1 w-full flex flex-wrap justify-between items-center">
         <Link
           href="/comics"
           className="invincible-button px-2 py-1 sm:px-4 sm:py-2 rounded-md flex items-center gap-1 sm:gap-2 transform transition-all duration-200 shadow-md text-sm sm:text-base flex-shrink-0"
