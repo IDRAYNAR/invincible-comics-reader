@@ -271,6 +271,186 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
     }
   }, [files]);
 
+  const handleImageClick = useCallback((event: React.MouseEvent<HTMLImageElement>) => {
+    // Get the horizontal position of the click relative to the image
+    const image = event.currentTarget;
+    const imageRect = image.getBoundingClientRect();
+    const clickX = event.clientX - imageRect.left;
+    const imageWidth = imageRect.width;
+    
+    // Get references to the tap indicators
+    const prevIndicator = image.parentElement?.querySelector('.tap-indicator-prev') as HTMLElement;
+    const nextIndicator = image.parentElement?.querySelector('.tap-indicator-next') as HTMLElement;
+    
+    // If click is on the left side (first 40% of the width), go to previous page
+    if (clickX < imageWidth * 0.4) {
+      // Show the previous page indicator briefly
+      if (prevIndicator) {
+        prevIndicator.style.opacity = '1';
+        setTimeout(() => {
+          prevIndicator.style.opacity = '0';
+        }, 300);
+      }
+      handlePrevPage();
+    } else {
+      // Show the next page indicator briefly
+      if (nextIndicator) {
+        nextIndicator.style.opacity = '1';
+        setTimeout(() => {
+          nextIndicator.style.opacity = '0';
+        }, 300);
+      }
+      handleNextPage();
+    }
+  }, [handlePrevPage, handleNextPage]);
+
+  // Placer le sélecteur de page dans la barre de navigation
+  useEffect(() => {
+    const pageSelectorContainer = document.getElementById('pageSelector');
+    if (pageSelectorContainer) {
+      // Rendre le conteneur visible
+      pageSelectorContainer.classList.remove('invisible');
+      
+      // Écouter les changements de taille d'écran
+      const handleResize = () => {
+        updateSelector();
+      };
+      
+      // Fonction pour créer et mettre à jour le sélecteur
+      const updateSelector = () => {
+        // Déterminer si l'écran est petit (mobile)
+        const isMobile = window.innerWidth < 640;
+        const isVerySmall = window.innerWidth < 360;
+        
+        // Créer le sélecteur
+        const selectElement = document.createElement('select');
+        
+        // Appliquer des styles adaptés à la taille de l'écran
+        selectElement.className = 'invincible-button px-2 py-1 sm:px-4 sm:py-2 rounded-md appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-md transform transition-all duration-200 text-sm sm:text-base';
+        selectElement.style.backgroundImage = "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")";
+        selectElement.style.backgroundRepeat = "no-repeat";
+        selectElement.style.backgroundPosition = "right 0.3rem center";
+        selectElement.style.backgroundSize = isMobile ? "1em 1em" : "1.5em 1.5em";
+        selectElement.style.paddingRight = isMobile ? "1.8rem" : "2.5rem";
+        
+        // Déterminer s'il faut grouper les options pour réduire la hauteur du menu
+        const shouldGroupOptions = isMobile; // Toujours grouper sur mobile
+        
+        if (shouldGroupOptions) {
+          // Créer d'abord une option pour la page actuelle
+          const currentOption = document.createElement('option');
+          currentOption.value = currentPage.toString();
+          currentOption.text = isVerySmall ? 
+            `Page ${currentPage + 1}` : 
+            `Page ${currentPage + 1}/${totalPages}`;
+          currentOption.selected = true;
+          selectElement.appendChild(currentOption);
+          
+          // Groupes de navigation - diviser en sections logiques
+          // Premier groupe: Pages rapprochées de la page actuelle
+          if (currentPage > 0 || currentPage < totalPages - 1) {
+            const nearbyGroup = document.createElement('optgroup');
+            nearbyGroup.label = "Pages proches";
+            
+            // Pages précédentes (max 2)
+            for (let i = Math.max(0, currentPage - 2); i < currentPage; i++) {
+              const option = document.createElement('option');
+              option.value = i.toString();
+              option.text = `← Page ${i + 1}`;
+              nearbyGroup.appendChild(option);
+            }
+            
+            // Pages suivantes (max 2)
+            for (let i = currentPage + 1; i <= Math.min(totalPages - 1, currentPage + 2); i++) {
+              const option = document.createElement('option');
+              option.value = i.toString();
+              option.text = `→ Page ${i + 1}`;
+              nearbyGroup.appendChild(option);
+            }
+            
+            if (nearbyGroup.children.length > 0) {
+              selectElement.appendChild(nearbyGroup);
+            }
+          }
+          
+          // Groupe de navigation par dizaines
+          if (totalPages > 10) {
+            const jumpGroup = document.createElement('optgroup');
+            jumpGroup.label = "Aller à...";
+            
+            // Ajouter des options pour sauter directement à certaines pages
+            const intervals = [1, 10, 25, 50, 75, 100, 125];
+            
+            for (const pageNum of intervals) {
+              if (pageNum < totalPages && Math.abs(pageNum - (currentPage + 1)) > 5) {
+                const option = document.createElement('option');
+                option.value = (pageNum - 1).toString();
+                option.text = `Page ${pageNum}`;
+                jumpGroup.appendChild(option);
+              }
+            }
+            
+            // Ajouter également la dernière page si elle est assez éloignée
+            if (currentPage < totalPages - 5) {
+              const lastOption = document.createElement('option');
+              lastOption.value = (totalPages - 1).toString();
+              lastOption.text = `Dernière p. ${totalPages}`;
+              jumpGroup.appendChild(lastOption);
+            }
+            
+            if (jumpGroup.children.length > 0) {
+              selectElement.appendChild(jumpGroup);
+            }
+          }
+        } else {
+          // Version standard pour desktop: ajouter toutes les options individuellement
+          for (let i = 0; i < totalPages; i++) {
+            const option = document.createElement('option');
+            option.value = i.toString();
+            option.text = `Page ${i + 1}/${totalPages}`;
+            if (i === currentPage) {
+              option.selected = true;
+            }
+            selectElement.appendChild(option);
+          }
+        }
+        
+        // Ajouter l'écouteur d'événements
+        const handleChange = (e: Event) => {
+          const target = e.target as HTMLSelectElement;
+          setCurrentPage(Number(target.value));
+        };
+        
+        selectElement.addEventListener('change', handleChange);
+        
+        // Vider et ajouter
+        pageSelectorContainer.innerHTML = '';
+        pageSelectorContainer.appendChild(selectElement);
+        
+        return handleChange;
+      };
+      
+      // Initialiser le sélecteur
+      const handleChange = updateSelector();
+      
+      // Ajouter l'écouteur pour le redimensionnement
+      window.addEventListener('resize', handleResize);
+      
+      // Nettoyer quand le composant est démonté
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        const selectElement = pageSelectorContainer.querySelector('select');
+        if (selectElement) {
+          selectElement.removeEventListener('change', handleChange);
+        }
+        if (pageSelectorContainer) {
+          pageSelectorContainer.innerHTML = '';
+          pageSelectorContainer.classList.add('invisible');
+        }
+      };
+    }
+  }, [currentPage, totalPages]);
+
   if (!allComicPages.length) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
@@ -283,19 +463,61 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
     <div className="relative w-full max-w-6xl mx-auto">
       <div className="flex items-center justify-center min-h-[60vh] relative">
         {imageUrl && (
-          <img
-            src={imageUrl}
-            alt={`Page ${currentPage + 1}`}
-            className="object-contain max-h-[70vh] max-w-full transition-opacity duration-300"
-            style={{ opacity: loading ? 0.3 : 1 }}
-            onLoad={() => {
-              console.log("Image loaded successfully");
-              setLoading(false);
-            }}
-            onError={handleImageError}
-            loading="eager"
-            fetchPriority="high"
-          />
+          <div className="relative group">
+            <img
+              src={imageUrl}
+              alt={`Page ${currentPage + 1}`}
+              className="object-contain max-h-[70vh] max-w-full transition-opacity duration-300 cursor-pointer" 
+              style={{ opacity: loading ? 0.3 : 1 }}
+              onLoad={() => {
+                console.log("Image loaded successfully");
+                setLoading(false);
+              }}
+              onError={handleImageError}
+              onClick={handleImageClick}
+              loading="eager"
+              fetchPriority="high"
+            />
+            
+            {/* Navigation indicators - only visible on hover on desktop */}
+            <div className="absolute inset-0 hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+              {/* Previous page indicator - left side */}
+              <div className="flex-1 flex items-center justify-start p-4 opacity-0">
+                <div className="bg-white bg-opacity-50 rounded-full p-2 shadow-lg">
+                  <FaChevronLeft className="w-6 h-6 text-black" />
+                </div>
+              </div>
+              
+              {/* Next page indicator - right side */}
+              <div className="flex-1 flex items-center justify-end p-4 opacity-0">
+                <div className="bg-white bg-opacity-50 rounded-full p-2 shadow-lg">
+                  <FaChevronRight className="w-6 h-6 text-black" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Mobile navigation zones - invisible touch targets */}
+            <div className="absolute inset-0 flex md:hidden pointer-events-none">
+              {/* Previous page zone - left side */}
+              <div className="flex-[0.4]"></div>
+              
+              {/* Next page zone - right side */}
+              <div className="flex-[0.6]"></div>
+            </div>
+            
+            {/* Mobile indicators - briefly appear on tap before navigation */}
+            <div className="absolute top-1/2 left-4 transform -translate-y-1/2 md:hidden opacity-0 tap-indicator-prev pointer-events-none transition-opacity duration-300">
+              <div className="bg-white bg-opacity-70 rounded-full p-2 shadow-lg">
+                <FaChevronLeft className="w-5 h-5 text-black" />
+              </div>
+            </div>
+            
+            <div className="absolute top-1/2 right-4 transform -translate-y-1/2 md:hidden opacity-0 tap-indicator-next pointer-events-none transition-opacity duration-300">
+              <div className="bg-white bg-opacity-70 rounded-full p-2 shadow-lg">
+                <FaChevronRight className="w-5 h-5 text-black" />
+              </div>
+            </div>
+          </div>
         )}
         {(loading || loadingMorePages) && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 opacity-70">

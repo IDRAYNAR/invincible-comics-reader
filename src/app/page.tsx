@@ -36,7 +36,6 @@ export default function Home() {
           height={75}
           className="mb-4"
         />
-        <p className="text-2xl font-bold">Lecteur de BD</p>
       </div>
 
       <div className="invincible-card bg-white dark:bg-gray-800 p-8 mb-8 rounded-lg max-w-2xl">

@@ -176,16 +176,22 @@ export default function ComicPage({ params }: { params: Promise<PageParams> }) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] text-center px-4 pt-2">
-      <div className="mb-3 w-full flex justify-start">
-        <Link 
-          href="/comics" 
-          className="invincible-button px-4 py-2 rounded-md flex items-center gap-2 transform hover:scale-105 transition-all duration-200 shadow-md"
+      <div className="mb-3 w-full flex flex-wrap justify-between items-center">
+        <Link
+          href="/comics"
+          className="invincible-button px-2 py-1 sm:px-4 sm:py-2 rounded-md flex items-center gap-1 sm:gap-2 transform transition-all duration-200 shadow-md text-sm sm:text-base flex-shrink-0"
         >
-          <FaArrowLeft className="w-4 h-4" />
-          <span>Liste des volumes</span>
+          <FaArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span>Retour</span>
         </Link>
+        
+        <h1 className="text-xl sm:text-2xl font-bold hidden md:block">{currentVolumeTitle}</h1>
+        
+        <div id="pageSelector" className="invisible flex-shrink-0 mt-0 sm:mt-0">
+          {/* Ce div sera remplacé par le sélecteur dans le composant ComicReader */}
+        </div>
       </div>
-      <h1 className="text-2xl font-bold mb-3">{currentVolumeTitle}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold mb-3 md:hidden">{currentVolumeTitle}</h1>
       
       {/* Utiliser Suspense pour montrer un fallback pendant le chargement des pages */}
       <Suspense fallback={
