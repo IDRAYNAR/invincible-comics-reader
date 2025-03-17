@@ -9,43 +9,47 @@ export function Nav() {
   const loading = status === "loading";
 
   return (
-    <header className="bg-white dark:bg-slate-900 shadow-sm">
+    <header className="invincible-header shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <span className="text-xl font-bold text-slate-900 dark:text-white">
-                Invincible Comics Reader
-              </span>
+              <Image
+                src="/img/invincible-logo.png"
+                alt="Logo Invincible"
+                width={150}
+                height={35}
+                className="max-h-8 w-auto"
+              />
             </Link>
           </div>
           <div className="flex items-center">
             {loading ? (
-              <div className="h-8 w-8 animate-pulse bg-gray-200 dark:bg-gray-700 rounded-full" />
+              <div className="h-8 w-8 animate-pulse bg-gray-200 rounded-full" />
             ) : session ? (
               <div className="flex items-center space-x-4">
                 {session.user?.image && (
                   <Image
                     src={session.user.image}
-                    alt={session.user.name || "User"}
+                    alt={session.user.name || "Utilisateur"}
                     width={32}
                     height={32}
-                    className="rounded-full"
+                    className="rounded-full border-2 border-black"
                   />
                 )}
                 <button
-                  onClick={() => signOut()}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="invincible-button px-4 py-2 rounded-md hover:cursor-pointer"
                 >
-                  Sign out
+                  Déconnexion
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => signIn("google")}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="invincible-button px-4 py-2 rounded-md hover:cursor-pointer"
               >
-                Sign in
+                Connexion
               </button>
             )}
           </div>

@@ -1,8 +1,21 @@
 @import "tailwindcss";
 
 :root {
+  --invincible-yellow: #ffe556;
+  --invincible-blue: #00bcf0;
+  --invincible-dark: #303539;
+  
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: var(--invincible-dark);
+  
+  --primary: var(--invincible-yellow);
+  --primary-foreground: var(--invincible-dark);
+  
+  --secondary: var(--invincible-blue);
+  --secondary-foreground: #ffffff;
+  
+  --accent: var(--invincible-dark);
+  --accent-foreground: var(--invincible-yellow);
 }
 
 @theme inline {
@@ -14,8 +27,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: var(--invincible-dark);
+    --foreground: var(--invincible-yellow);
   }
 }
 
@@ -23,4 +36,77 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Invincible-specific styling */
+.invincible-title {
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  font-weight: bold;
+  color: var(--invincible-yellow);
+  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+  letter-spacing: 1px;
+  transform: perspective(300px) rotateX(5deg);
+}
+
+.invincible-header {
+  background: var(--invincible-blue);
+}
+
+.invincible-button {
+  background-color: var(--invincible-yellow);
+  color: var(--invincible-dark);
+  font-weight: bold;
+  border: 2px solid black;
+  transition: all 0.2s;
+}
+
+.invincible-button:hover {
+  background-color: var(--invincible-dark);
+  color: var(--invincible-yellow);
+}
+
+.invincible-card {
+  border: 3px solid var(--invincible-dark);
+  box-shadow: 5px 5px 0 var(--invincible-yellow);
+}
+
+/* Comic title formatting */
+.comic-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.volume-number {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  background-color: var(--invincible-yellow);
+  color: var(--invincible-dark);
+  border: 2px solid var(--invincible-dark);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.title-text {
+  flex: 1;
+}
+
+/* Hide "Invincible - " for accessibility but keep for screen readers */
+.comic-title::before {
+  content: attr(data-full-title);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -20,26 +21,42 @@ export default function Home() {
   if (status === "loading" || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-      <h1 className="text-4xl font-bold mb-6">Welcome to Invincible Comics Reader</h1>
-      <p className="text-xl mb-8 max-w-2xl">
-        Access and read your Invincible comics stored in Google Drive
-      </p>
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] text-center px-4 pt-2">
+      <div className="mb-8">
+        <Image
+          src="/img/invincible-logo.png"
+          alt="Logo Invincible"
+          width={300}
+          height={75}
+          className="mb-4"
+        />
+        <p className="text-2xl font-bold">Lecteur de BD</p>
+      </div>
 
-      {!session && (
-        <button
-          onClick={() => signIn("google")}
-          className="px-6 py-3 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700 transition"
-        >
-          Sign in with Google
-        </button>
-      )}
+      <div className="invincible-card bg-white dark:bg-gray-800 p-8 mb-8 rounded-lg max-w-2xl">
+        <p className="text-xl mb-6">
+          Accédez et lisez votre collection de BD Invincible stockée sur Google Drive
+        </p>
+
+        {!session && (
+          <button
+            onClick={() => signIn("google")}
+            className="invincible-button px-6 py-3 rounded-md text-lg"
+          >
+            Se connecter avec Google
+          </button>
+        )}
+      </div>
+
+      <div className="text-sm opacity-75 mt-8">
+        Basé sur la BD de Robert Kirkman, Cory Walker et Ryan Ottley
+      </div>
     </div>
   );
 }

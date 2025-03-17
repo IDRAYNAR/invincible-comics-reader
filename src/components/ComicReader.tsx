@@ -274,14 +274,14 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
   if (!allComicPages.length) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
-        <p className="text-gray-500 dark:text-gray-400">No pages found for this comic</p>      
+        <p className="text-gray-500 dark:text-gray-400">Aucune page trouvée pour cette BD</p>      
       </div>
     );
   }
 
   return (
     <div className="relative w-full max-w-6xl mx-auto">
-      <div className="flex items-center justify-center min-h-[70vh] relative">
+      <div className="flex items-center justify-center min-h-[60vh] relative">
         {imageUrl && (
           <img
             src={imageUrl}
@@ -309,14 +309,14 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
           onClick={handlePrevPage}
           disabled={currentPage === 0}
           className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 disabled:opacity-30"        
-          aria-label="Previous page"
+          aria-label="Page précédente"
         >
           <FaChevronLeft className="w-6 h-6" />
         </button>
 
         <div className="text-center">
           <p>
-            Page {currentPage + 1} of {totalPages}
+            Page {currentPage + 1} sur {totalPages}
           </p>
         </div>
 
@@ -324,7 +324,7 @@ export function ComicReader({ files, pagination, volumeId }: ComicReaderProps) {
           onClick={handleNextPage}
           disabled={currentPage >= totalPages - 1}
           className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 disabled:opacity-30"        
-          aria-label="Next page"
+          aria-label="Page suivante"
         >
           <FaChevronRight className="w-6 h-6" />
         </button>

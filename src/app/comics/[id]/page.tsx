@@ -6,6 +6,7 @@ import { useState, useEffect, Suspense } from "react";
 import { drive_v3 } from "googleapis";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { FaArrowLeft } from "react-icons/fa";
 
 // Chargement dynamique du ComicReader pour réduire la taille du bundle initial
 const DynamicComicReader = dynamic(() => import("@/components/ComicReader").then((mod) => ({ default: mod.ComicReader })), {
@@ -105,19 +106,19 @@ export default function ComicPage({ params }: { params: Promise<PageParams> }) {
             
             const data = await response.json();
             if (!signal.aborted) {
-              setCurrentVolumeTitle(data.name || "Unknown Volume");
+              setCurrentVolumeTitle(data.name || "Tome inconnu");
             }
           } catch (err) {
             console.error("Error fetching comic details:", err);
             if (!signal.aborted) {
-              setError("Failed to load comic details");
+              setError("Impossible de charger les détails de la BD");
             }
           }
         }
       } catch (err) {
         console.error("Error in data fetching:", err);
         if (!signal.aborted) {
-          setError("Failed to load comic. Please try signing in again.");
+          setError("Impossible de charger la BD. Veuillez vous reconnecter.");
         }
       } finally {
         if (!signal.aborted) {
@@ -147,7 +148,7 @@ export default function ComicPage({ params }: { params: Promise<PageParams> }) {
   if (status === "unauthenticated") {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
-        <p className="text-gray-500 dark:text-gray-400">Please sign in to view comics</p>
+        <p className="text-gray-500 dark:text-gray-400">Veuillez vous connecter pour voir les BD</p>
       </div>
     );
   }
@@ -158,7 +159,7 @@ export default function ComicPage({ params }: { params: Promise<PageParams> }) {
         <div className="text-center">
           <p className="text-red-500 mb-4">{error}</p>
           <Link href="/api/auth/signin" className="text-blue-500 hover:underline">
-            Sign in again
+            Se reconnecter
           </Link>
         </div>
       </div>
@@ -168,19 +169,23 @@ export default function ComicPage({ params }: { params: Promise<PageParams> }) {
   if (!comicPages || comicPages.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
-        <p className="text-gray-500 dark:text-gray-400">No pages found for this comic</p>
+        <p className="text-gray-500 dark:text-gray-400">Aucune page trouvée pour cette BD</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex items-center">
-        <Link href="/comics" className="text-blue-500 hover:underline mr-4">
-          ← Back to Comics
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] text-center px-4 pt-2">
+      <div className="mb-3 w-full flex justify-start">
+        <Link 
+          href="/comics" 
+          className="invincible-button px-4 py-2 rounded-md flex items-center gap-2 transform hover:scale-105 transition-all duration-200 shadow-md"
+        >
+          <FaArrowLeft className="w-4 h-4" />
+          <span>Liste des volumes</span>
         </Link>
       </div>
-      <h1 className="text-2xl font-bold mb-6">{currentVolumeTitle}</h1>
+      <h1 className="text-2xl font-bold mb-3">{currentVolumeTitle}</h1>
       
       {/* Utiliser Suspense pour montrer un fallback pendant le chargement des pages */}
       <Suspense fallback={

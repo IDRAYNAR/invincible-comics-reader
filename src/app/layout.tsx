@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Invincible Comics Reader",
-  description: "Read Invincible comics from your Google Drive",
+  title: "Lecteur de BD Invincible",
+  description: "Lisez les BD Invincible depuis votre Google Drive",
 };
 
 export default function RootLayout({
@@ -25,13 +25,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100 dark:bg-slate-900 min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
         <NextAuthProvider>
           <Nav />
-          <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {children}
           </main>
         </NextAuthProvider>
