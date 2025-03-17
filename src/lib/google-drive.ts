@@ -1,4 +1,4 @@
-import { google } from "googleapis";
+import { google, drive_v3 } from "googleapis";
 
 /**
  * Configure le client Google Drive avec un token d'accès
@@ -71,20 +71,42 @@ export async function listFolders(accessToken: string, parentId: string) {
 }
 
 /**
- * Liste tous les fichiers dans un dossier Google Drive
+ * Liste tous les fichiers dans un dossier Google Drive avec pagination
+ * pour récupérer tous les fichiers sans limitation
  */
-export async function listFiles(accessToken: string, folderId: string) {
+export async function listFiles(accessToken: string, folderId: string): Promise<drive_v3.Schema$File[]> {
   const drive = getGoogleDriveClient(accessToken);
+  const allFiles: drive_v3.Schema$File[] = [];
+  let pageToken: string | undefined = undefined;
   
   try {
-    // Récupère tous les fichiers du dossier (images, PDFs, etc.)
-    const response = await drive.files.list({
-      q: `'${folderId}' in parents and trashed = false`,
-      fields: 'files(id, name, mimeType, webContentLink)',
-      orderBy: 'name',
-    });
+    console.log(`Fetching all files from folder ${folderId} with pagination...`);
     
-    return response.data.files || [];
+    // Boucle de pagination pour récupérer tous les fichiers
+    do {
+      // Définir une taille de page élevée pour minimiser le nombre de requêtes
+      const filesResponse: drive_v3.Schema$FileList = (await drive.files.list({
+        q: `'${folderId}' in parents and trashed = false`,
+        fields: 'nextPageToken, files(id, name, mimeType, webContentLink)',
+        orderBy: 'name',
+        pageSize: 1000, // Valeur maximale autorisée par l'API Google Drive
+        pageToken: pageToken || undefined
+      })).data;
+      
+      // Ajouter les fichiers de cette page au tableau complet
+      if (filesResponse.files && filesResponse.files.length > 0) {
+        allFiles.push(...filesResponse.files);
+      }
+      
+      // Mettre à jour le token pour la prochaine page
+      pageToken = filesResponse.nextPageToken || undefined;
+      
+      console.log(`Fetched ${filesResponse.files?.length || 0} files, total so far: ${allFiles.length}`);
+      
+    } while (pageToken); // Continuer tant qu'il y a des pages suivantes
+    
+    console.log(`Total files fetched from folder ${folderId}: ${allFiles.length}`);
+    return allFiles;
   } catch (error) {
     console.error('Erreur lors de la récupération des fichiers:', error);
     throw error;

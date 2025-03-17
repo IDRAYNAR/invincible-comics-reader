@@ -2,10 +2,20 @@
 
 import React, { use } from "react";
 import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { drive_v3 } from "googleapis";
-import { ComicReader } from "@/components/ComicReader";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Chargement dynamique du ComicReader pour réduire la taille du bundle initial
+const DynamicComicReader = dynamic(() => import("@/components/ComicReader").then((mod) => ({ default: mod.ComicReader })), {
+  loading: () => (
+    <div className="flex items-center justify-center min-h-[70vh]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  ),
+  ssr: false // Désactiver le SSR pour ce composant spécifique car il dépend fortement de l'API client
+});
 
 // Define extended type for processed files
 interface ExtendedFile extends drive_v3.Schema$File {
@@ -38,8 +48,10 @@ export default function ComicPage({ params }: { params: Promise<PageParams> }) {
   async function getComicPages(): Promise<ComicPagesResponse> {
     try {
       const response = await fetch(`/api/comics/${volumeId}/pages`, {
-        // Use cache: 'no-store' to always get fresh data
-        cache: 'no-store',
+        // Enable caching for performance optimization
+        next: { 
+          revalidate: 3600 // Revalidate every 1 hour
+        },
       });
       
       if (!response.ok) {
@@ -62,40 +74,66 @@ export default function ComicPage({ params }: { params: Promise<PageParams> }) {
       return;
     }
 
+    // Utiliser AbortController pour éviter les fuites de mémoire
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     const fetchData = async () => {
       try {
         // Fetch comic pages
         setLoading(true);
         const pagesData = await getComicPages();
-        setComicPages(pagesData.files || []);
+        
+        // Vérifier si le composant est toujours monté
+        if (!signal.aborted) {
+          setComicPages(pagesData.files || []);
+        }
 
         // Fetch comic details
-        if (session?.accessToken) {
+        if (session?.accessToken && !signal.aborted) {
           try {
-            const response = await fetch(`/api/comics/${volumeId}`);
+            const response = await fetch(`/api/comics/${volumeId}`, {
+              // Enable caching for details as well
+              next: { 
+                revalidate: 3600 // Revalidate hourly
+              },
+            });
             
             if (!response.ok) {
               throw new Error("Failed to fetch comic details");
             }
             
             const data = await response.json();
-            setCurrentVolumeTitle(data.name || "Unknown Volume");
+            if (!signal.aborted) {
+              setCurrentVolumeTitle(data.name || "Unknown Volume");
+            }
           } catch (err) {
             console.error("Error fetching comic details:", err);
-            setError("Failed to load comic details");
+            if (!signal.aborted) {
+              setError("Failed to load comic details");
+            }
           }
         }
       } catch (err) {
         console.error("Error in data fetching:", err);
-        setError("Failed to load comic. Please try signing in again.");
+        if (!signal.aborted) {
+          setError("Failed to load comic. Please try signing in again.");
+        }
       } finally {
-        setLoading(false);
+        if (!signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     if (status === "authenticated") {
       fetchData();
     }
+
+    // Cleanup function pour éviter les fuites de mémoire
+    return () => {
+      controller.abort();
+    };
   }, [volumeId, session, status]);
 
   if (status === "loading" || loading) {
@@ -143,7 +181,26 @@ export default function ComicPage({ params }: { params: Promise<PageParams> }) {
         </Link>
       </div>
       <h1 className="text-2xl font-bold mb-6">{currentVolumeTitle}</h1>
-      <ComicReader files={comicPages} />
+      
+      {/* Utiliser Suspense pour montrer un fallback pendant le chargement des pages */}
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-[70vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      }>
+        <DynamicComicReader 
+          files={comicPages} 
+          volumeId={volumeId}
+          pagination={comicPages?.length > 0 ? {
+            totalFiles: comicPages?.length || 0,
+            totalPages: 1, // Valeur par défaut qui sera mise à jour par l'API
+            currentPage: 1,
+            pageSize: 350,
+            hasNextPage: false,
+            hasPrevPage: false
+          } : undefined}
+        />
+      </Suspense>
     </div>
   );
 } 
