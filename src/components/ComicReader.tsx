@@ -29,12 +29,12 @@ export function ComicReader({ files }: ComicReaderProps) {
     setLoading(true);
     setImageUrl(null);
     setFallbackAttempts(0);
-    
+
     if (currentFile && currentFile.id) {
-      // Try direct access with Google Drive's direct access format
-      const directUrl = `https://lh3.googleusercontent.com/d/${currentFile.id}=w2000`;
-      console.log("Using direct image URL:", directUrl);
-      setImageUrl(directUrl);
+      // Use a proxy via our own API to avoid CORS issues
+      const proxyUrl = `/api/proxy-image?id=${currentFile.id}`;
+      console.log("Using proxied image URL:", proxyUrl);
+      setImageUrl(proxyUrl);
     } else {
       console.warn("No usable image URL available for this file");
       setLoading(false);
@@ -44,24 +44,20 @@ export function ComicReader({ files }: ComicReaderProps) {
   // Handle image load error and try alternative URL formats
   const handleImageError = useCallback(() => {
     console.error("Error loading image, trying alternate URL format");
-    
+
     if (currentFile && currentFile.id) {
-      // Try different URL formats in sequence
+      // Try different approaches using our proxy with different source URLs
       const urlFormats = [
-        // Format 1: Standard thumbnail URL
-        `https://lh3.googleusercontent.com/d/${currentFile.id}`,
-        // Format 2: With view parameter
-        `https://drive.google.com/uc?export=view&id=${currentFile.id}`,
-        // Format 3: With download parameter
-        `https://drive.google.com/uc?export=download&id=${currentFile.id}`,
-        // Format 4: Original webContentLink if available
-        currentFile.webContentLink || null,
-        // Format 5: Another googleusercontent format
-        `https://lh3.googleusercontent.com/d/${currentFile.id}=s2000`
-      ].filter((url): url is string => url !== null && url !== undefined); // Filter out null/undefined
-      
+        // Format 1: Proxy with export=view parameter
+        `/api/proxy-image?id=${currentFile.id}&format=view`,
+        // Format 2: Proxy with download parameter
+        `/api/proxy-image?id=${currentFile.id}&format=download`,
+        // Format 3: Try the webContentLink directly if available
+        currentFile.webContentLink || null
+      ].filter((url): url is string => url !== null && url !== undefined);
+
       const nextAttempt = fallbackAttempts + 1;
-      
+
       if (nextAttempt < urlFormats.length) {
         const alternateUrl = urlFormats[nextAttempt];
         console.log(`Attempt ${nextAttempt + 1}/${urlFormats.length}: Using URL format:`, alternateUrl);
@@ -106,7 +102,7 @@ export function ComicReader({ files }: ComicReaderProps) {
   if (!files.length) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
-        <p className="text-gray-500 dark:text-gray-400">No pages found for this comic</p>
+        <p className="text-gray-500 dark:text-gray-400">No pages found for this comic</p>      
       </div>
     );
   }
@@ -123,9 +119,7 @@ export function ComicReader({ files }: ComicReaderProps) {
               console.log("Image loaded successfully");
               setLoading(false);
             }}
-            onError={() => {
-              handleImageError();
-            }}
+            onError={handleImageError}
           />
         )}
         {loading && (
@@ -139,7 +133,7 @@ export function ComicReader({ files }: ComicReaderProps) {
         <button
           onClick={handlePrevPage}
           disabled={currentPage === 0}
-          className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 disabled:opacity-30"
+          className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 disabled:opacity-30"        
           aria-label="Previous page"
         >
           <FaChevronLeft className="w-6 h-6" />
@@ -154,7 +148,7 @@ export function ComicReader({ files }: ComicReaderProps) {
         <button
           onClick={handleNextPage}
           disabled={currentPage === totalPages - 1}
-          className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 disabled:opacity-30"
+          className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 disabled:opacity-30"        
           aria-label="Next page"
         >
           <FaChevronRight className="w-6 h-6" />

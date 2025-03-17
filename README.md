@@ -1,28 +1,56 @@
-# Invincible Comics Reader
+# ⚠️ Disclaimer
 
-Une application Next.js pour lire des comics stockés sur Google Drive.
+This project is **not designed for public use**. It was built specifically to meet a **personal need** and is tailored to the architecture of my drive.
 
-## Fonctionnalités
+You are free to explore, modify, and adapt it to your own use, but keep in mind that the setup and structure may **not be directly compatible** with your environment.
 
-- Authentification avec Google OAuth
-- Accès aux fichiers Google Drive
-- Lecteur de comics intégré
-- Interface responsive
+Feel free to experiment, but **adjustments will likely be necessary** to make it work for your specific setup.
 
-## Configuration locale
+# 📁 Google Drive Architecture
 
-1. Clonez le dépôt
+This application is designed to work with the following folder structure:
+
+```
+My Drive
+└── Invincible/
+    ├── Invincible - 01 - Family Matter/
+    │   ├── 0001_0000.jpg
+    │   ├── 0002_0001.jpg
+    │   └── ...
+    ├── Invincible - 02 - Eight Is Enough/
+    │   ├── 0001_0000.jpg
+    │   ├── 0002_0001.jpg
+    │   └── ...
+    └── ...
+```
+
+The application navigates through this hierarchical structure and displays the images in numerical order for each volume.
+
+# 🦸‍♂️ Invincible Comics Reader
+
+A Next.js application for reading comics stored on Google Drive.
+
+## ✨ Features
+
+- 🔐 Authentication with Google OAuth
+- 📂 Access to Google Drive files
+- 📖 Integrated comics reader
+- 📱 Responsive interface
+
+## 🚀 Local Setup
+
+1. Clone the repository
    ```bash
-   git clone https://github.com/votre-username/invincible-comics-reader.git
+   git clone https://github.com/your-username/invincible-comics-reader.git
    cd invincible-comics-reader
    ```
 
-2. Installez les dépendances
+2. Install dependencies
    ```bash
    npm install
    ```
 
-3. Créez un fichier `.env.local` à la racine du projet avec les variables suivantes :
+3. Create a `.env.local` file at the root of the project with the following variables:
    ```
    # NextAuth Configuration
    NEXTAUTH_URL=http://localhost:3000
@@ -33,60 +61,17 @@ Une application Next.js pour lire des comics stockés sur Google Drive.
    GOOGLE_CLIENT_SECRET=your_google_client_secret_here
    ```
 
-4. Lancez le serveur de développement
+4. Start the development server
    ```bash
    npm run dev
    ```
 
-## Déploiement sur Vercel
+## 🔒 Security
 
-### Méthode 1 : Déploiement automatique depuis GitHub
+- 🔑 Sensitive environment variables are stored in `.env.local` which is ignored by Git
+- 🛡️ Authentication is managed by NextAuth.js
+- 🔐 Access tokens are securely stored in JWT sessions
 
-1. Poussez votre code sur GitHub
-   ```bash
-   git add .
-   git commit -m "Initial commit"
-   git push
-   ```
-
-2. Connectez-vous à [Vercel](https://vercel.com)
-3. Cliquez sur "New Project"
-4. Importez votre dépôt GitHub
-5. Configurez les variables d'environnement dans l'interface Vercel :
-   - `NEXTAUTH_URL` : URL de votre application déployée (ex: https://votre-app.vercel.app)
-   - `NEXTAUTH_SECRET` : Une chaîne aléatoire pour sécuriser les sessions
-   - `GOOGLE_CLIENT_ID` : Votre ID client Google OAuth
-   - `GOOGLE_CLIENT_SECRET` : Votre secret client Google OAuth
-6. Cliquez sur "Deploy"
-
-### Méthode 2 : Déploiement avec Vercel CLI
-
-1. Installez Vercel CLI
-   ```bash
-   npm install -g vercel
-   ```
-
-2. Connectez-vous à Vercel
-   ```bash
-   vercel login
-   ```
-
-3. Déployez l'application
-   ```bash
-   vercel
-   ```
-
-4. Pour déployer en production
-   ```bash
-   vercel --prod
-   ```
-
-## Sécurité
-
-- Les variables d'environnement sensibles sont stockées dans `.env.local` qui est ignoré par Git
-- L'authentification est gérée par NextAuth.js
-- Les tokens d'accès sont stockés de manière sécurisée dans les sessions JWT
-
-## Licence
+## 📝 License
 
 MIT

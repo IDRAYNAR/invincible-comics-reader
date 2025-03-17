@@ -37,8 +37,8 @@ export async function GET(
         console.log("Processing file:", file.name);
         
         // Create multiple URL formats for each image to handle potential access issues
-        // Primary format: direct lh3.googleusercontent.com URL (most reliable)
-        const directUrl = `https://lh3.googleusercontent.com/d/${file.id}=w2000`;
+        // Primary format: using export=view which tends to work better for direct viewing
+        const directUrl = `https://drive.google.com/uc?export=view&id=${file.id}`;
         
         // Thumbnail format: smaller version for faster loading
         const thumbnailUrl = `https://lh3.googleusercontent.com/d/${file.id}=w800`;
