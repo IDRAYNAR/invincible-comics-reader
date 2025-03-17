@@ -28,7 +28,7 @@ The application navigates through this hierarchical structure and displays the i
 
 # 🦸‍♂️ Invincible Comics Reader
 
-A Next.js application for reading comics stored on Google Drive.
+A Next.js application to read my Invincible comics stored on my Google Drive.
 
 ## ✨ Features
 
